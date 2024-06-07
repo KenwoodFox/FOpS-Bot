@@ -30,9 +30,10 @@ class TagModal(discord.ui.Modal, title="Enter Tags"):
         placeholder="Rating s, q or e",
     )
 
-    def __init__(self, attachment, *args, **kwargs):
+    def __init__(self, attachment, message, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.attachment = attachment
+        self.message = message
 
     async def on_submit(self, interaction: discord.Interaction):
         tags = self.tags.value
@@ -44,6 +45,7 @@ class TagModal(discord.ui.Modal, title="Enter Tags"):
         api_user = os.environ.get("BOORU_USER", "")
         api_url = "https://booru.kitsunehosting.net"
 
+        await self.message.add_reaction("⬇")
         await interaction.response.send_message(
             f"Got it! Please wait... tagging and sorting {self.attachment.filename}",
             ephemeral=True,
@@ -66,8 +68,10 @@ class TagModal(discord.ui.Modal, title="Enter Tags"):
                 rating,
             )
 
+            await self.message.add_reaction("⬆")
             await interaction.followup.send(
-                f"Success!\nImage has been uploaded as {api_url}/posts/{post_id}"
+                f"Success!\nImage has been uploaded as {api_url}/posts/{post_id}",
+                ephemeral=True,
             )
 
 
@@ -103,7 +107,8 @@ class Grab(commands.Cog):
             # Ensure the downloads directory exists
             os.makedirs("./downloads", exist_ok=True)
             # Show modal to collect tags
-            modal = TagModal(attachment)
+            modal = TagModal(attachment, message)
+            await message.add_reaction("🤔")
             await interaction.response.send_modal(modal)
         else:
             await interaction.response.send_message(
