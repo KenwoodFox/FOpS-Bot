@@ -4,6 +4,7 @@
 
 
 import os
+import imp
 import discord
 import logging
 import requests
@@ -13,6 +14,9 @@ from typing import Literal, Optional
 from discord import app_commands
 from discord.ext import commands
 
+ui = imp.load_source("upload_image", "fops_bot/scripts/danbooru-scripts.py")
+cp = imp.load_source("create_post", "fops_bot/scripts/danbooru-scripts.py")
+
 
 # This is pretty cool, basically a popup UI
 class TagModal(discord.ui.Modal, title="Enter Tags"):
@@ -21,18 +25,50 @@ class TagModal(discord.ui.Modal, title="Enter Tags"):
         placeholder="Enter tags separated by spaces",
     )
 
+    rating = discord.ui.TextInput(
+        label="Rating",
+        placeholder="Rating s, q or e",
+    )
+
     def __init__(self, attachment, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.attachment = attachment
 
     async def on_submit(self, interaction: discord.Interaction):
         tags = self.tags.value
+        rating = self.rating.value
         await self.attachment.save(f"./downloads/{self.attachment.filename}")
+
+        # Get secrets
+        api_key = os.environ.get("BOORU_KEY", "")
+        api_user = os.environ.get("BOORU_USER", "")
+        api_url = "https://booru.kitsunehosting.net"
+
         await interaction.response.send_message(
-            f"Image `{self.attachment.filename}` has been downloaded with tags: {tags}",
+            f"Got it! Please wait... tagging and sorting {self.attachment.filename}",
             ephemeral=True,
         )
-        # Add your uploading logic here, using the tags
+
+        # Upload everything
+        upload_id = ui.upload_image(
+            api_key,
+            api_user,
+            api_url,
+            f"./downloads/{self.attachment.filename}",
+        )
+        if upload_id:
+            post_id = cp.create_post(
+                api_key,
+                api_user,
+                api_url,
+                upload_id,  # Passed from prev command
+                tags,
+                rating,
+            )
+
+            await interaction.followup.send(
+                f"Success!\nImage has been uploaded as {api_url}/posts/{post_id}"
+            )
 
 
 class Grab(commands.Cog):
