@@ -91,8 +91,9 @@ class Grab(commands.Cog):
     ):
         # Check if the message contains attachments
         if not message.attachments:
-            await interaction.followup.send(
-                "The selected message does not contain any attachments.", ephemeral=True
+            await interaction.response.send_message(
+                "The message you selected dosn't contain directly embedded images! (but i will support linked images in the future.)",
+                ephemeral=True,
             )
             return
 
