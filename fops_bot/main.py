@@ -57,6 +57,8 @@ class FopsBot(object):
                 except Exception as e:
                     logging.fatal(f"Error loading {filename} as a cog, error: {e}")
 
+        await self.bot.tree.sync()
+
     async def on_message(self, ctx):
         # hehe, sneaky every time
         logging.info(ctx)
