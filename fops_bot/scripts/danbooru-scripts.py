@@ -40,9 +40,9 @@ def create_post(api_key, username, danbooru_url, upload_id, tags, rating):
     url = f"{danbooru_url}/posts.json?api_key={api_key}&login={username}"
     data = {
         "upload_media_asset_id": upload_id,
-        "post[tag_string]": f"vixi_archive {tags}",
+        "post[tag_string]": f" {tags}",
         "post[rating]": rating,
-        "post[artist_commentary_desc]": "File uploaded by Vixi's archive manager, there may be missing tags and data!",
+        # "post[artist_commentary_desc]": "File uploaded by Vixi's archive manager, there may be missing tags and data!",
     }
 
     print(f"Posting upload ID {upload_id}, tags '{tags}', rating {rating}")
