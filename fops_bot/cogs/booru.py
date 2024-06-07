@@ -2,13 +2,11 @@
 # 2024, Fops Bot
 # MIT License
 
-
 import os
 import imp
 import discord
 import logging
 import requests
-
 
 from typing import Literal, Optional
 from discord import app_commands
@@ -36,8 +34,11 @@ class TagModal(discord.ui.Modal, title="Enter Tags"):
         self.message = message
 
     async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+
         tags = self.tags.value
         rating = self.rating.value
+
         await self.attachment.save(f"./downloads/{self.attachment.filename}")
 
         # Get secrets
@@ -46,10 +47,6 @@ class TagModal(discord.ui.Modal, title="Enter Tags"):
         api_url = "https://booru.kitsunehosting.net"
 
         await self.message.add_reaction("⬇")
-        await interaction.response.send_message(
-            f"Got it! Please wait... tagging and sorting {self.attachment.filename}",
-            ephemeral=True,
-        )
 
         # Upload everything
         upload_id = ui.upload_image(
@@ -87,14 +84,14 @@ class Grab(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        await bot.tree.sync()
+        await self.bot.tree.sync()
 
     async def grab_message_context(
         self, interaction: discord.Interaction, message: discord.Message
     ):
         # Check if the message contains attachments
         if not message.attachments:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "The selected message does not contain any attachments.", ephemeral=True
             )
             return
@@ -111,7 +108,7 @@ class Grab(commands.Cog):
             await message.add_reaction("🤔")
             await interaction.response.send_modal(modal)
         else:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "The attachment is not an image.", ephemeral=True
             )
 
