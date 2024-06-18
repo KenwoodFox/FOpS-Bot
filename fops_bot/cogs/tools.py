@@ -1,11 +1,6 @@
-# FOSNHU
-# 2022, Fops Bot
-# MIT License
-
-
 import discord
 import logging
-
+import random
 
 from typing import Literal, Optional
 from discord import app_commands
@@ -21,7 +16,6 @@ class ToolCog(commands.Cog, name="Tools"):
         """
         Prints the revision/version.
         """
-
         await ctx.response.send_message(f"I am running version `{self.bot.version}`.")
 
     @commands.command()
@@ -63,6 +57,28 @@ class ToolCog(commands.Cog, name="Tools"):
                 ret += 1
 
         await ctx.send(f"Synced the tree to {ret}/{len(guilds)}.")
+
+    @app_commands.command(name="roll")
+    @app_commands.describe(
+        dice="The dice to roll in the format 'xdy' where x is the number of dice and y is the number of sides"
+    )
+    async def roll(self, ctx: discord.Interaction, dice: str):
+        """
+        Rolls a dice in the format 'xdy'.
+        """
+        try:
+            num, sides = map(int, dice.lower().split("d"))
+            if num <= 0 or sides <= 0:
+                raise ValueError
+        except ValueError:
+            await ctx.response.send_message(
+                "Invalid dice format. Use 'xdy' where x is the number of dice and y is the number of sides, e.g., '2d6'."
+            )
+            return
+
+        rolls = [random.randint(1, sides) for _ in range(num)]
+        total = sum(rolls)
+        await ctx.response.send_message(f"Rolls: {rolls}\nTotal: {total}")
 
 
 async def setup(bot):
