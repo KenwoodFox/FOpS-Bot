@@ -9,9 +9,10 @@ import logging
 import requests
 import aiohttp
 
+from datetime import datetime
 from typing import Literal, Optional
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 
 booru_scripts = imp.load_source("booru_scripts", "fops_bot/scripts/danbooru-scripts.py")
@@ -88,11 +89,18 @@ class Grab(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+        #
         self.ctx_menu = app_commands.ContextMenu(
             name="Upload to BixiBooru",
             callback=self.grab_message_context,  # set the callback of the context menu to "grab_message_context"
         )
         self.bot.tree.add_command(self.ctx_menu)
+
+        # Numbers
+        self.image_count = 0
+
+        # Tasks
+        self.update_status.start()
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -129,7 +137,7 @@ class Grab(commands.Cog):
     async def on_message(self, message):
         # Check if the message has exactly one attachment and is an image
         if len(message.attachments) == 0:
-            logging.info("No attachments")
+            logging.debug("No attachments")
             return
 
         if len(message.attachments) > 1:
@@ -178,6 +186,9 @@ class Grab(commands.Cog):
         else:
             await message.add_reaction("💎")
 
+        # Increment image count
+        self.image_count += 1
+
         # Clean up the download
         os.remove(file_path)
 
@@ -200,6 +211,23 @@ class Grab(commands.Cog):
     def has_duplicates(self, s):
         # Check for duplicate characters in the string
         return len(s) != len(set(s))
+
+    @tasks.loop(minutes=1)
+    async def update_status(self):
+        current_minute = datetime.now().minute
+
+        if current_minute % 2 == 0:
+            await self.bot.change_presence(
+                activity=discord.Game(name=f"images scanned: {self.image_count}")
+            )
+        else:
+            await self.bot.change_presence(
+                activity=discord.Game(name=f"Running Version {self.bot.version}")
+            )
+
+    @update_status.before_loop
+    async def before_update_status(self):
+        await self.bot.wait_until_ready()
 
 
 async def setup(bot):
