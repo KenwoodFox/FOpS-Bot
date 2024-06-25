@@ -7,13 +7,14 @@ import imp
 import discord
 import logging
 import requests
+import aiohttp
 
 from typing import Literal, Optional
 from discord import app_commands
 from discord.ext import commands
 
-ui = imp.load_source("upload_image", "fops_bot/scripts/danbooru-scripts.py")
-cp = imp.load_source("create_post", "fops_bot/scripts/danbooru-scripts.py")
+
+booru_scripts = imp.load_source("booru_scripts", "fops_bot/scripts/danbooru-scripts.py")
 
 
 # This is pretty cool, basically a popup UI
@@ -49,14 +50,14 @@ class TagModal(discord.ui.Modal, title="Enter Tags"):
         await self.message.add_reaction("⬇")
 
         # Upload everything
-        upload_id = ui.upload_image(
+        upload_id = booru_scripts.upload_image(
             api_key,
             api_user,
             api_url,
             f"./downloads/{self.attachment.filename}",
         )
         if upload_id:
-            post_id = cp.create_post(
+            post_id = booru_scripts.create_post(
                 api_key,
                 api_user,
                 api_url,
@@ -65,11 +66,22 @@ class TagModal(discord.ui.Modal, title="Enter Tags"):
                 rating,
             )
 
-            await self.message.add_reaction("⬆")
-            await interaction.followup.send(
-                f"Success!\nImage has been uploaded as {api_url}/posts/{post_id}",
-                ephemeral=True,
-            )
+            # if post_id != None:
+            #     await self.message.add_reaction("⬆")
+
+            #     for num in number_to_words(post_id):
+            #         await self.message.add_reaction(num)
+
+            #     await interaction.followup.send(
+            #         f"Success!\nImage has been uploaded as {api_url}/posts/{post_id}",
+            #         ephemeral=True,
+            #     )
+            # else:  # Image must have already been posted
+            #     await self.message.add_reaction("white_check_mark")
+            #     await interaction.followup.send(
+            #         f"Looks like this image has already been tracked!",
+            #         ephemeral=True,
+            #     )
 
 
 class Grab(commands.Cog):
@@ -112,6 +124,82 @@ class Grab(commands.Cog):
             await interaction.followup.send(
                 "The attachment is not an image.", ephemeral=True
             )
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        # Check if the message has exactly one attachment and is an image
+        if len(message.attachments) == 0:
+            logging.info("No attachments")
+            return
+
+        if len(message.attachments) > 1:
+            logging.info("Too many attachments")
+            await message.add_reaction("🤹‍♂️")
+            return
+
+        if not message.attachments[0].content_type.startswith("image/"):
+            logging.warn("Attachment is not an image?")
+            await message.add_reaction("❌")
+            return
+
+        # Get secrets
+        api_key = os.environ.get("BOORU_KEY", "")
+        api_user = os.environ.get("BOORU_USER", "")
+        api_url = "https://booru.kitsunehosting.net"
+
+        # Get attachment
+        attachment = message.attachments[0]
+        file_path = f"/tmp/{attachment.filename}"
+
+        # Download the image
+        async with aiohttp.ClientSession() as session:
+            async with session.get(attachment.url) as resp:
+                if resp.status == 200:
+                    with open(file_path, "wb") as f:
+                        f.write(await resp.read())
+
+        # Call the get_post_id function
+        post_id = booru_scripts.check_image_exists(
+            file_path, api_url, api_key, api_user
+        )
+
+        # Check if a valid number was returned
+        if post_id is not None and isinstance(post_id, int):
+            post_id_str = str(post_id)
+
+            # Check for duplicate digits
+            if self.has_duplicates(post_id_str):
+                logging.warn(f"Duplicated digits for post {post_id_str}")
+                await message.add_reaction("🔢")
+            else:
+                for digit in post_id_str:
+                    # React with the corresponding emoji
+                    await message.add_reaction(self.get_emoji(digit))
+        else:
+            await message.add_reaction("💎")
+
+        # Clean up the download
+        os.remove(file_path)
+
+    def get_emoji(self, digit):
+        # Map digit to corresponding emoji
+        emoji_map = {
+            "0": "0️⃣",
+            "1": "1️⃣",
+            "2": "2️⃣",
+            "3": "3️⃣",
+            "4": "4️⃣",
+            "5": "5️⃣",
+            "6": "6️⃣",
+            "7": "7️⃣",
+            "8": "8️⃣",
+            "9": "9️⃣",
+        }
+        return emoji_map[digit]
+
+    def has_duplicates(self, s):
+        # Check for duplicate characters in the string
+        return len(s) != len(set(s))
 
 
 async def setup(bot):

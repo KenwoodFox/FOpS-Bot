@@ -3,6 +3,37 @@ import requests
 import argparse
 
 
+def check_image_exists(file_path, danbooru_url, api_key, username):
+    url = f"{danbooru_url}/iqdb_queries.json"
+    with open(file_path, "rb") as file:
+        files = {"search[file]": file}
+
+        print(f"Checking if {file_path} exists on the server via {url}")
+
+        # Using HTTP Basic Auth for API key and username
+        response = requests.post(url, files=files, auth=(username, api_key))
+
+        if response.status_code == 201:
+            results = response.json()
+            # Assuming the first result is the most relevant
+            if results and "post" in results[0]:
+                if int(results[0]["score"]) < 95:
+                    print("Confidence too low, assuming no matches")
+                    return None
+
+                post_id = results[0]["post_id"]
+                print(f"Image {file_path} already exists with post ID {post_id}.")
+                return post_id
+
+            else:
+                print(f"Image {file_path} does not exist on the server.")
+                return None
+        else:
+            print(f"Failed to check {file_path}. Status code: {response.status_code}")
+            print(f"Response: {response.text}")
+            return None
+
+
 # Function to upload an image
 def upload_image(api_key, username, danbooru_url, file_path):
     url = f"{danbooru_url}/uploads.json?api_key={api_key}&login={username}"
