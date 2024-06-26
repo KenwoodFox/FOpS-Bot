@@ -96,7 +96,9 @@ class Grab(commands.Cog):
         self.api_user = os.environ.get("BOORU_USER", "")
         self.api_url = os.environ.get("BOORU_URL", "")
         # This one must be parsed
-        self.auto_upload_list = os.environ.get("BOORU_URL", "00,00").split(",")
+        self.auto_upload_list = os.environ.get("BOORU_AUTO_UPLOAD", "00,00").split(
+            ", "
+        )  # Todo, better way to strip whitespace
 
         # Numbers/Stats
         self.image_count = 0
@@ -184,8 +186,13 @@ class Grab(commands.Cog):
             # We get to this stage when we've looked up and confirmed that this post is unique!
             await message.add_reaction("💎")
 
-            # TODO: Move to shared func
+            if str(message.channel.id) not in self.auto_upload_list:
+                logging.info(
+                    f"Not uploading image in {message.channel.id}, not in list {self.auto_upload_list}"
+                )
+                return
 
+            # TODO: Move to shared func
             tags = "tagme, discord_archive"
             rating = "e"
 
