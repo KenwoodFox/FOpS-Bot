@@ -193,7 +193,7 @@ class Grab(commands.Cog):
                 return
 
             # TODO: Move to shared func
-            tags = "tagme, discord_archive"
+            tags = "tagme discord_archive"
             rating = "e"
 
             # Upload everything
