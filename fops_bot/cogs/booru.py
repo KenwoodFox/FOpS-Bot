@@ -43,25 +43,20 @@ class TagModal(discord.ui.Modal, title="Enter Tags"):
 
         await self.attachment.save(f"./downloads/{self.attachment.filename}")
 
-        # Get secrets
-        api_key = os.environ.get("BOORU_KEY", "")
-        api_user = os.environ.get("BOORU_USER", "")
-        api_url = "https://booru.kitsunehosting.net"
-
         await self.message.add_reaction("⬇")
 
         # Upload everything
         upload_id = booru_scripts.upload_image(
-            api_key,
-            api_user,
-            api_url,
+            self.api_key,
+            self.api_user,
+            self.api_url,
             f"./downloads/{self.attachment.filename}",
         )
         if upload_id:
             post_id = booru_scripts.create_post(
-                api_key,
-                api_user,
-                api_url,
+                self.api_key,
+                self.api_user,
+                self.api_url,
                 upload_id,  # Passed from prev command
                 tags,
                 rating,
@@ -96,7 +91,14 @@ class Grab(commands.Cog):
         )
         self.bot.tree.add_command(self.ctx_menu)
 
-        # Numbers
+        # Configure options and secrets
+        self.api_key = os.environ.get("BOORU_KEY", "")
+        self.api_user = os.environ.get("BOORU_USER", "")
+        self.api_url = os.environ.get("BOORU_URL", "")
+        # This one must be parsed
+        self.auto_upload_list = os.environ.get("BOORU_URL", "00,00").split(",")
+
+        # Numbers/Stats
         self.image_count = 0
 
         # Tasks
@@ -150,11 +152,6 @@ class Grab(commands.Cog):
             await message.add_reaction("❌")
             return
 
-        # Get secrets
-        api_key = os.environ.get("BOORU_KEY", "")
-        api_user = os.environ.get("BOORU_USER", "")
-        api_url = "https://booru.kitsunehosting.net"
-
         # Get attachment
         attachment = message.attachments[0]
         file_path = f"/tmp/{attachment.filename}"
@@ -168,7 +165,7 @@ class Grab(commands.Cog):
 
         # Call the get_post_id function
         post_id = booru_scripts.check_image_exists(
-            file_path, api_url, api_key, api_user
+            file_path, self.api_url, self.api_key, self.api_user
         )
 
         # Check if a valid number was returned
@@ -184,7 +181,42 @@ class Grab(commands.Cog):
                     # React with the corresponding emoji
                     await message.add_reaction(self.get_emoji(digit))
         else:
+            # We get to this stage when we've looked up and confirmed that this post is unique!
             await message.add_reaction("💎")
+
+            # TODO: Move to shared func
+
+            tags = "tagme, discord_archive"
+            rating = "e"
+
+            # Upload everything
+            upload_id = booru_scripts.upload_image(
+                self.api_key,
+                self.api_user,
+                self.api_url,
+                file_path,  # <- Same path as earlier
+            )
+            if upload_id:
+                post_id = booru_scripts.create_post(
+                    self.api_key,
+                    self.api_user,
+                    self.api_url,
+                    upload_id,  # Passed from prev command
+                    tags,
+                    rating,
+                )
+
+                post_id_str = str(post_id)
+
+                # Check for duplicate digits
+                if self.has_duplicates(post_id_str):
+                    logging.warn(f"Duplicated digits for post {post_id_str}")
+                    await message.add_reaction("🔢")
+                else:
+                    for digit in post_id_str:
+                        # React with the corresponding emoji
+                        await message.add_reaction(self.get_emoji(digit))
+            # TODO: Move to shared func
 
         # Increment image count
         self.image_count += 1
