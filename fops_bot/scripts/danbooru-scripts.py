@@ -17,7 +17,7 @@ def check_image_exists(file_path, danbooru_url, api_key, username):
             results = response.json()
             # Assuming the first result is the most relevant
             if results and "post" in results[0]:
-                if int(results[0]["score"]) < 95:
+                if int(results[0]["score"]) < 85:
                     print("Confidence too low, assuming no matches")
                     return None
 
