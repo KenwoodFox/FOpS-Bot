@@ -179,6 +179,7 @@ class Grab(commands.Cog):
                 logging.warn(f"Duplicated digits for post {post_id_str}")
                 await message.add_reaction("🔢")
             else:
+                logging.info(f"Getting digits for {post_id_str}")
                 for digit in post_id_str:
                     # React with the corresponding emoji
                     await message.add_reaction(self.get_emoji(digit))
