@@ -141,7 +141,14 @@ class Grab(commands.Cog):
     async def on_message(self, message):
         # Check if the message has exactly one attachment and is an image
         if len(message.attachments) == 0:
-            logging.debug("No attachments")
+            logging.debug(
+                "No attachments!?? Vixi! DONT FORGOR: Must add discord check here!"
+            )
+
+            # Embed check
+            # Before
+            # Returning!
+
             return
 
         if len(message.attachments) > 1:
@@ -246,7 +253,12 @@ class Grab(commands.Cog):
             "8": "8️⃣",
             "9": "9️⃣",
         }
-        return emoji_map[digit]
+
+        try:
+            return emoji_map[digit]
+        except KeyError:
+            logging.warn(f"Couldn't decode key {digit}")
+            return "❓"
 
     def has_duplicates(self, s):
         # Check for duplicate characters in the string
