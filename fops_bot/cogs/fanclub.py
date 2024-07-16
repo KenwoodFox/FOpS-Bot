@@ -176,14 +176,21 @@ class FanclubCog(commands.Cog, name="FanclubCog"):
 
             # Check if default id
             if curId == self.default_id:
+                logging.info("User ID is stale because the value is default")
                 return True  # Value is default and needs to be updated
 
             if userTime == None:
+                logging.warning(
+                    "User ID is stale because the time has not been set????????"
+                )
                 return (
                     True  # Not sure how we would get here but, yeah we'd need to update
                 )
 
             if int(time.time()) - int(userTime) > (60 * 6):
+                logging.info(
+                    f"User ID is stale because the time has expired, {int(time.time()) - int(userTime)} > {(60 * 6)}"
+                )
                 return True  # If there is a more than 6hr difference
 
         return False
