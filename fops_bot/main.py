@@ -10,6 +10,8 @@ import random
 from discord import Intents
 from discord.ext import commands
 
+from .utilities.database import init_db
+
 
 class FopsBot(object):
     def __init__(self):
@@ -49,6 +51,7 @@ class FopsBot(object):
 
     async def on_ready(self):
         # Cog Loader!
+        logging.info("Loading cogs...")
         for filename in os.listdir(self.workdir + "cogs"):
             logging.info(f"Found file {filename}, loading as extension.")
             if filename.endswith(".py"):
@@ -56,6 +59,17 @@ class FopsBot(object):
                     await self.bot.load_extension(f"cogs.{filename[:-3]}")
                 except Exception as e:
                     logging.fatal(f"Error loading {filename} as a cog, error: {e}")
+        logging.info("Done loading cogs")
+
+        # DB Setup
+        try:
+            logging.info("Configuring DB")
+            self.bot.dbReady = init_db()
+        except Exception as e:
+            logging.error(f"Could not configure the DB! Error was {e}")
+            self.bot.dbReady = False
+        finally:
+            logging.info("Done configuring DB")
 
         await self.bot.tree.sync()
 

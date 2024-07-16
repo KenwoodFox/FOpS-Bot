@@ -23,6 +23,9 @@ RUN pip install --upgrade pip --no-cache-dir
 # Set workdir
 WORKDIR ${HOME}
 
+# Add any packages we need
+RUN apt update && apt install python-dev-is-python3 ffmpeg -y
+
 # Copy in all requirements
 ADD requirements requirements/
 
@@ -30,9 +33,6 @@ ADD requirements requirements/
 RUN pip install -r requirements/requirements.txt --no-cache-dir
 # Install testing reqs
 RUN pip install -r requirements/test_requirements.txt --no-cache-dir
-
-# Add anything else we need
-RUN apt update && apt install ffmpeg -y
 
 # Copy in everything else
 ADD . ${HOME}
