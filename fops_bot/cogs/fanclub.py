@@ -39,8 +39,9 @@ class FanclubCog(commands.Cog, name="FanclubCog"):
 
         # Ids
         self.default_id = "000000000000000"
-        self.id_key = "hole_user_id"
-        self.time_key = "hole_user_last_changed"
+        self.base_hole_user_key = "hole_user_id"
+        self.base_hole_user_time_key = "hole_user_last_changed"
+        self.base_hole_user_chan_map_key = "hole_channel_map"
 
         # Start daily task to rotate dynamic users
         self.rotate_dynamic_users.start()
@@ -85,9 +86,21 @@ class FanclubCog(commands.Cog, name="FanclubCog"):
     async def holeInTheWallListener(self, msg: discord.Message):
         logging.debug(f"Hole In the wall got {msg}")
 
+        # Shush of OOC
+        if msg.content[0] == "(":
+            return
+
         # Check if the message is in a static channel
         for static_pair in self.config["static"]:
             chan, user = map(int, static_pair)
+
+            # If the msg is a private dm check the user id
+            if isinstance(msg.channel, discord.channel.DMChannel):
+                if msg.author.id == user:
+                    await self.returning_message(msg, msg.author.id, chan)
+                    return
+
+            # If its a public channel just check the chan_id
             if msg.channel.id == chan:
                 await self.forward_message(msg, user)
                 return
@@ -100,9 +113,32 @@ class FanclubCog(commands.Cog, name="FanclubCog"):
                 # Next check if the channel ID matches
                 if msg.channel.id == int(server_config["chan_id"]):
 
-                    user_id = int(retrieve_key(self.id_key))
+                    user_id = int(
+                        retrieve_key(f"{self.base_hole_user_key}_{msg.guild.id}")
+                    )
                     await self.forward_message(msg, user_id)
                     return
+
+        # Check if the message is a PM
+        if isinstance(msg.channel, discord.channel.DMChannel):
+            user_id = msg.author.id
+            await self.returning_message(msg, user_id)
+            return
+
+    async def returning_message(self, msg, user_id, chan_id=None):
+        # If you dont specify a channel id, this function will look up the mapping in the DB
+        if not chan_id:
+            channel_id = retrieve_key(f"{self.base_hole_user_chan_map_key}_{user_id}")
+        else:
+            channel_id = chan_id
+
+        if channel_id:
+            channel = self.bot.get_channel(int(channel_id))
+            if channel:
+                await channel.send(f"*{msg.author.display_name}:*\n{msg.content}")
+                await msg.add_reaction("📬")
+            else:
+                await msg.add_reaction("❌")
 
     async def forward_message(self, msg, user_id):
         if msg.author.bot:
@@ -127,19 +163,28 @@ class FanclubCog(commands.Cog, name="FanclubCog"):
     def isCurrentUserStale(self):
         # Helper function to check if we need to update the current user
 
-        # Retrieve value
-        curId = retrieve_key(self.id_key, self.default_id)
-        userTime = retrieve_key(self.time_key)
+        # Iter all servers
+        for server_config in self.config["dynamic"]:
+            # Retrieve value
+            curId = retrieve_key(
+                f"{self.base_hole_user_key}_{server_config['guild_id']}",
+                self.default_id,
+            )
+            userTime = retrieve_key(
+                f"{self.base_hole_user_time_key}_{server_config['guild_id']}"
+            )
 
-        # Check if default id
-        if curId == self.default_id:
-            return True  # Value is default and needs to be updated
+            # Check if default id
+            if curId == self.default_id:
+                return True  # Value is default and needs to be updated
 
-        if userTime == None:
-            return True  # Not sure how we would get here but, yeah we'd need to update
+            if userTime == None:
+                return (
+                    True  # Not sure how we would get here but, yeah we'd need to update
+                )
 
-        if int(time.time()) - int(userTime) > (60 * 6):
-            return True  # If there is a more than 6hr difference
+            if int(time.time()) - int(userTime) > (60 * 6):
+                return True  # If there is a more than 6hr difference
 
         return False
 
@@ -163,8 +208,18 @@ class FanclubCog(commands.Cog, name="FanclubCog"):
             user = random.choice(users)
 
             # Update db
-            store_key(self.id_key, user["user_id"])
-            store_key(self.time_key, str(int(time.time())))
+            store_key(
+                f"{self.base_hole_user_key}_{server_config['guild_id']}",
+                user["user_id"],
+            )
+            store_key(
+                f"{self.base_hole_user_time_key}_{server_config['guild_id']}",
+                str(int(time.time())),
+            )
+            store_key(
+                f"{self.base_hole_user_chan_map_key}_{user['user_id']}",
+                server_config["chan_id"],
+            )
 
             chan_id = int(server_config["chan_id"])
             user_info = user
@@ -174,13 +229,13 @@ class FanclubCog(commands.Cog, name="FanclubCog"):
             if channel:
                 await channel.send(f"*{fluff}*")
 
-    # @rotate_dynamic_users.before_loop
-    # async def before_rotate_dynamic_users(self):
-    #     logging.info(
-    #         f"{self.qualified_name}: Waiting for bot to be ready",
-    #     )
-    #     await self.bot.wait_until_ready()
-    #     logging.debug(f"{self.qualified_name}: Bot is ready")
+    @rotate_dynamic_users.before_loop
+    async def before_rotate_dynamic_users(self):
+        logging.info(
+            f"{self.qualified_name}: Waiting for bot to be ready",
+        )
+        await self.bot.wait_until_ready()
+        logging.debug(f"{self.qualified_name}: Bot is ready")
 
 
 async def setup(bot):
