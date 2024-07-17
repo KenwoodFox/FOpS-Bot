@@ -187,9 +187,9 @@ class FanclubCog(commands.Cog, name="FanclubCog"):
                     True  # Not sure how we would get here but, yeah we'd need to update
                 )
 
-            if int(time.time()) - int(userTime) > (60 * 6):
+            if int(time.time()) - int(userTime) > (21600):
                 logging.info(
-                    f"User ID is stale because the time has expired, {int(time.time()) - int(userTime)} > {(60 * 6)}"
+                    f"User ID is stale because the time has expired, {int(time.time()) - int(userTime)} > {21600}"
                 )
                 return True  # If there is a more than 6hr difference
 
