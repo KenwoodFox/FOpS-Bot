@@ -46,5 +46,8 @@ RUN pip install -e ${HOME} --no-cache-dir
 RUN chown -R ${USER_ID}:${GROUP_ID} ${HOME}
 USER ${USER_ID}
 
+# The `|| exit 1` isn't required but it's good practice anyway.
+HEALTHCHECK CMD discordhealthcheck || exit 1
+
 # Run the entrypoint bin
 ENTRYPOINT ["entrypoint"]

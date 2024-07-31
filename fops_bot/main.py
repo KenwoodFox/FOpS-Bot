@@ -7,6 +7,9 @@ import sys
 import logging
 import random
 
+import discordhealthcheck
+
+import discord
 from discord import Intents
 from discord.ext import commands
 
@@ -50,6 +53,13 @@ class FopsBot(object):
         self.bot.version = self.version  # Package version with bot
 
     async def on_ready(self):
+        # Start health monitoring
+        logging.info(
+            "Preparing external monitoring (using discordhealthcheck https://pypi.org/project/discordhealthcheck/)"
+        )
+        self.healthcheck_server = await discordhealthcheck.start(self.bot)
+        logging.info("Done prepping external monitoring")
+
         # Cog Loader!
         logging.info("Loading cogs...")
         for filename in os.listdir(self.workdir + "cogs"):

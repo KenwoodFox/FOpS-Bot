@@ -1,4 +1,5 @@
 discord.py
+discordhealthcheck
 requests
 lxml
 pytz
