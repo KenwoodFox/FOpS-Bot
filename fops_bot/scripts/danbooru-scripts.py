@@ -239,3 +239,20 @@ def fetch_new_comments(danbooru_url, api_key, username, last_comment_id):
         print(f"Failed to fetch new comments. Status code: {response.status_code}")
         print(f"Response: {response.text}")
         return []
+
+
+def get_username(danbooru_url, api_key, username, user_id):
+    url = f"{danbooru_url}/users/{user_id}.json"
+    response = requests.get(url, auth=(username, api_key))
+
+    if response.status_code == 200:
+        user_data = response.json()
+        user_name = user_data.get("name", "")
+        print(f"User ID {user_id} corresponds to username '{user_name}'.")
+        return user_name
+    else:
+        print(
+            f"Failed to fetch username for user ID {user_id}. Status code: {response.status_code}"
+        )
+        print(f"Response: {response.text}")
+        return None

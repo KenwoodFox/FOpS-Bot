@@ -184,8 +184,15 @@ class BackgroundBooru(commands.Cog):
             return
 
         for comment in new_comments:
+            _username = booru_scripts.get_username(
+                self.api_url,
+                self.api_key,
+                self.api_user,
+                comment["creator_id"],
+            )
+
             await channel.send(
-                f"New comment by {comment['creator_id']} on post {comment['post_id']}:\n{comment['body']}\n\n{self.api_url}/posts/{comment['post_id']}"
+                f"New comment by {_username} on post {comment['post_id']}:\n{comment['body']}\n\n{self.api_url}/posts/{comment['post_id']}"
             )
 
         # Update the last_comment_id with the latest comment's ID
