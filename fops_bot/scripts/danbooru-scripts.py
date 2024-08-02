@@ -214,3 +214,28 @@ def append_post_tags(post_id, new_tags, danbooru_url, api_key, username, clear_t
         )
         print(f"Response: {response.text}")
         return None
+
+
+def fetch_new_comments(danbooru_url, api_key, username, last_comment_id):
+    url = f"{danbooru_url}/comments.json"
+    params = {
+        "search[id_gte]": int(last_comment_id) + 1,
+        "login": username,
+        "api_key": api_key,
+        "limit": 100,
+    }
+    response = requests.get(url, params=params)
+
+    filtered_response = []
+
+    # No easy way (i think) to filter these so... here we go :3
+    for comment in response.json():
+        if int(comment["id"]) > int(last_comment_id):
+            filtered_response.append(comment)
+
+    if response.status_code == 200:
+        return filtered_response
+    else:
+        print(f"Failed to fetch new comments. Status code: {response.status_code}")
+        print(f"Response: {response.text}")
+        return []

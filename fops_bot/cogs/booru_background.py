@@ -27,6 +27,7 @@ class BackgroundBooru(commands.Cog):
 
         # Start tasks
         self.update_status.start()
+        self.check_new_comments.start()
 
     def check_reply(self, message):
         if message.reference is None:
@@ -137,6 +138,12 @@ class BackgroundBooru(commands.Cog):
         if not channel:
             logging.warn(f"Could not get channel {channel}")  # Skip to next run
 
+        # Check if the last message in this channel was posted by the bot
+        last_message = await channel.history(limit=1).__anext__()
+        if last_message and last_message.author == self.bot.user:
+            logging.debug("Last message was posted by the bot, skipping...")
+            return
+
         r_post = booru_scripts.fetch_images_with_tag(
             "tagme",
             self.api_url,
@@ -151,6 +158,40 @@ class BackgroundBooru(commands.Cog):
         )
 
         logging.info("waiting 30 minutes to post next tagme...")
+
+    @tasks.loop(seconds=30)
+    async def check_new_comments(self):
+        channel = self.bot.get_channel(
+            int(
+                os.environ.get("BOORU_AUTO_UPLOAD", "00000000000").split(", ")[0]
+            )  # Hardcoded to get the [0] element
+        )
+
+        if not channel:
+            logging.warn(f"Could not get channel {channel}")  # Skip to next run
+
+        last_comment_id = retrieve_key("last_comment_id", 0) or 0
+
+        new_comments = booru_scripts.fetch_new_comments(
+            self.api_url,
+            self.api_key,
+            self.api_user,
+            last_comment_id=last_comment_id,
+        )
+
+        if not new_comments:
+            logging.debug("No new comments found.")
+            return
+
+        for comment in new_comments:
+            await channel.send(
+                f"New comment by {comment['creator_id']} on post {comment['post_id']}:\n{comment['body']}\n\n{self.api_url}/posts/{comment['post_id']}"
+            )
+
+        # Update the last_comment_id with the latest comment's ID
+        store_key("last_comment_id", new_comments[0]["id"])
+
+        logging.info(f"Posted {len(new_comments)} new comments.")
 
 
 async def setup(bot):
