@@ -105,7 +105,7 @@ class BackgroundBooru(commands.Cog):
 
         logging.info(f"Added {real_tags} to {post_id}")
 
-        # If the number of tags is over 20 we can clear the `tagme`
+        # If the number of tags is over 8 we can clear the `tagme`
         if (
             len(
                 booru_scripts.get_post_tags(
@@ -115,7 +115,7 @@ class BackgroundBooru(commands.Cog):
                     self.api_user,
                 )
             )
-            > 20
+            > 8
         ):
             logging.info("Clearing tagme")
             booru_scripts.append_post_tags(
