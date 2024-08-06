@@ -43,6 +43,8 @@ class FanclubCog(commands.Cog, name="FanclubCog"):
         self.base_hole_user_time_key = "hole_user_last_changed"
         self.base_hole_user_chan_map_key = "hole_channel_map"
 
+    @commands.Cog.listener()
+    async def on_ready(self):
         # Start daily task to rotate dynamic users
         self.rotate_dynamic_users.start()
 

@@ -25,6 +25,8 @@ class BackgroundBooru(commands.Cog):
         self.api_user = os.environ.get("BOORU_USER", "")
         self.api_url = os.environ.get("BOORU_URL", "")
 
+    @commands.Cog.listener()
+    async def on_ready(self):
         # Start tasks
         self.update_status.start()
         self.check_new_comments.start()

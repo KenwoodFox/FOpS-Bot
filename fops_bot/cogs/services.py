@@ -34,6 +34,9 @@ class servicesCog(commands.Cog, name="Bconsole"):
         self.pfurl = url.rstrip("/") + "/status_dhcp_leases.php"
         self.pfuser = os.environ.get("PFSENSE_USER", "")
         self.pfpassword = os.environ.get("PFSENSE_PASSWORD", "")
+
+    @commands.Cog.listener()
+    async def on_ready(self):
         self.watch_arp.start()
 
     def sizeof_fmt(self, num):

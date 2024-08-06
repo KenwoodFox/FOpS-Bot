@@ -102,6 +102,8 @@ class Grab(commands.Cog):
             ", "
         )  # Todo, better way to strip whitespace
 
+    @commands.Cog.listener()
+    async def on_ready(self):
         # Tasks
         self.update_status.start()
 
