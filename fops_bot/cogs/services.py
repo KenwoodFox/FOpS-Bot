@@ -25,7 +25,7 @@ class servicesCog(commands.Cog, name="Bconsole"):
 
         # Alert chan
         self.alert_channel = self.bot.get_channel(
-            int(os.environ.get("ALERT_CHAN_ID", ""))
+            int(os.environ.get("SERVICE_CHAN_ID", ""))
         )
 
         # Setup for arp watcher
